@@ -1,0 +1,14 @@
+#include "gmp.dl"
+
+.decl test(f : float, s : symbol)
+test(3.14, Q(3.14)) :- true.
+test(3.14, @mpqs_add(Q(1), Q(2.2))) :- true.
+test(3.14, @mpqs_mul(@mpqs_add(Q(1), Q(2.2)), Q(4))) :- true.
+test(@float_of_mpqs(Q(1.78)), "1.78") :- true.
+test(3.45, "worked") :- QGT(Q(8), Q(4)).
+test(3.45, "shouldn't") :- QGT(Q(4), Q(8)).
+test(3.45, "shouldn't") :- QGT(Q(4), Q(4)).
+test(3.45, "equal check") :- @mpqs_add(Q(4), Q(0)) = Q(4).
+test(3.45, "equal check") :- @mpqs_add(Q(4), Q(0)) = Q(4).
+
+.output test(IO=stdout)
