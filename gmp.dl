@@ -1,6 +1,6 @@
 .pragma "libraries" "gmpstubs"
 .type mpq <: symbol
-.functor mpqs_of_float(float):mpq
+
 .functor float_of_mpqs(mpq):float
 .functor mpqs_neg(mpq):mpq
 .functor mpqs_abs(mpq):mpq
@@ -10,7 +10,17 @@
 .functor mpqs_mul(mpq, mpq):mpq
 .functor mpqs_div(mpq, mpq):mpq
 .functor mpqs_cmp(mpq, mpq):number
-#define Q(x) @mpqs_of_float(x)
+#if RAM_DOMAIN_SIZE == 32
+    .functor mpqs_of_float(float):mpq
+    #define Q(x) @mpqs_of_float(x)
+#elif RAM_DOMAIN_SIZE == 64
+    .functor mpqs_of_double(float):mpq
+    #define Q(x) @mpqs_of_double(x)
+#else
+    #error Unsupported RAM_DOMAIN_SIZE
+#endif
+
+
 #define QGT(x,y) (@mpqs_cmp(x,y) > 0)
 #define QGTE(x,y) (@mpqs_cmp(x,y) >= 0)
 #define QLT(x,y) (@mpqs_cmp(x,y) < 0)

@@ -69,6 +69,25 @@ extern "C" {
         return (float) z;
     }
 
+    const char* mpqs_of_double(double x){
+        mpq_t y;
+        mpq_init(y);
+        mpq_set_d(y, x);
+        char* res = mpq_get_str(NULL,10,y);
+        mpq_clear(y);
+        if(res == NULL){
+            return "NULL";
+        }
+        return res;
+    }
+    float double_of_mpqs(const char* x){
+        mpq_t x1;
+        mpq_init(x1);
+        mpq_set_str(x1,x,10);
+        double z = mpq_get_d(x1);
+        mpq_clear(x1);
+        return z;
+    }
     const char* mpqs_add(const char* x, const char* y){
         mpq_t x1, y1, z1;
         mpq_init(x1);

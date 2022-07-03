@@ -1,13 +1,16 @@
 
 //.type gmp_rat <: symbol
+
+
 #include "gmp.dl"
-.type Expr = Lit {n : float} | Add {x : Expr, y : Expr} | X {} // | Mul {} // div? | X {}
+.type Expr = Lit {n : float} | Add {x : Expr, y : Expr} | X {} | Mul {x : Expr, y : Expr} // div? | X {}
 
 .decl top(x : Expr)
 
 .decl term(x : Expr)
 term(x) :- top(x).
 term(x),term(y) :- term($Add(x,y)).
+term(x),term(y) :- term($Mul(x,y)).
 
 term(x) :- eq(x,_).
 eq(x,x) :- term(x).
@@ -16,7 +19,16 @@ eq(x,x) :- term(x).
 eq(t, $Add(x,$Add(y,z))) :- term(t), t = $Add($Add(x,y),z).
 eq(t, $Add($Add(x,y),z)) :- term(t), t = $Add(x,$Add(y,z)).
 eq(t, $Add(y,x)) :- term(t), t = $Add(x,y).
+eq(t, x) :- term(t), t = $Add($Lit(0),x).
+eq(t, $Lit(m + n)) :- term(t), t = $Add($Lit(n),$Lit(m)).
 
+eq(t, $Mul(x,$Mul(y,z))) :- term(t), t = $Mul($Mul(x,y),z).
+eq(t, $Mul($Mul(x,y),z)) :- term(t), t = $Mul(x,$Mul(y,z)).
+eq(t, $Mul(y,x)) :- term(t), t = $Mul(x,y).
+eq(t, x) :- term(t), t = $Mul($Lit(1),x).
+
+eq(t, $Add($Mul(x,y), $Mul(x,z))) :- term(t), t = $Mul(x,$Add(y,z)).
+eq(t, $Mul(x,$Add(y,z))) :- term(t), t = $Add($Mul(x,y), $Mul(x,z)).
 /*
 eval(t : Expr, n : float).
 eval(t, n) :- term(t), t = $Lit(n).
@@ -24,30 +36,36 @@ eval(t, nx + ny) :- term(t), t = $Add(x,y), eval(x,nx), eval(y,ny).
 */
 
 #define NSAMP 10
-.decl sample(s : unsigned, x : float)
+.decl sample(samp : unsigned, x : float)
 sample(s, to_float(s)/NSAMP) :- s = range(0,NSAMP).
 
-.decl eval(s : unsigned, t : Expr, n : float)
+.decl eval(samp : unsigned, t : Expr, n : float)
 eval(s, t, n) :- term(t), t = $Lit(n), sample(s, _).
 eval(s, t, x) :- term(t), t = $X(), sample(s, x).
 eval(s, t, nx + ny) :- term(t), t = $Add(x,y), eval(s,x,nx), eval(s,y,ny).
 
 
-.decl exact(s : unsigned, t : Expr, n : mpq)
+.decl exact(samp : unsigned, t : Expr, n : mpq)
 exact(s,t,Q(n)) :- term(t), t = $Lit(n), sample(s,_).
 exact(s,t,Q(x)) :- term(t), t = $X(), sample(s,x).
 exact(s,t,@mpqs_add(nx,ny)) :- term(t), t = $Add(x,y), exact(s,x,nx), exact(s,y,ny).
 
-.decl err(s : unsigned, t : Expr, e : float) // should error be mpq? probably but it makes minimum kind of annoying
+.decl err(samp : unsigned, t : Expr, err : float) // should error be mpq? probably but it makes minimum kind of annoying
 err(s, t, @float_of_mpqs(e)) :- eval(s,t,x1), exact(s,t,x2), e = @mpqs_abs(@mpqs_sub(Q(x1), x2)).
 
-.decl best(s : unsigned, t : Expr, e : float)
-best(s, t1, be) :- term(t), s = range(0,10), be = min e: {err(s, t1, e), eq(t,t1)}, eq(t,t1), err(s,t1,be).
+.decl best(samp : unsigned, t : Expr, best_t : Expr, val : float, err : float) choice-domain (samp, t)
+best(s, t, t1, val, be) :- top(t), s = range(0,NSAMP), be = min e: {err(s, t2, e), eq(t,t2)}, eq(t,t1), err(s,t1,be), eval(s,t1,val).
 
 
 
-top($Add($Add($Lit(1),$X()),$Lit(10000))).
+//top($Add($Add($Lit(1),$X()),$Lit(10000))).
+//top($Add($Add($Lit(100000000.349023490324),$X()),$Lit(-100000000.0932384239))).
+top($Add($Add($Lit(1000000000000000000),$Lit(1)),$Lit(-1000000000000000000))).
+top($Add($Add($Lit(1000000000000000000),$X()),$Lit(-1000000000000000000))).
 //.output eval(IO=stdout)
-//.output sample(IO=stdout)
-//.output exact(IO=stdout)
+.output sample(IO=stdout)
+.output exact(IO=stdout)
+.output err(IO=stdout)
 .output best(IO=stdout)
+
+// Hmm. Maybe my _input_ should be mpqs in Lit
